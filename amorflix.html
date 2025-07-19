@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luiz e Carliane - Amorflix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Cores e gradientes personalizados */
+        .gradient-overlay {
+            background: linear-gradient(to right, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 50%, transparent 100%);
+        }
+
+        .gradient-bottom {
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+        }
+
+        .scroll-hidden::-webkit-scrollbar {
+            display: none;
+        }
+
+        .netflix-purple {
+            background-color: #AF84B9;
+        }
+
+        .netflix-purple-text {
+            color: #8077B8;
+        }
+
+        .netflix-purple-gradient {
+            background: linear-gradient(45deg, #8077B8, #af84b9);
+        }
+
+        /* Efeitos de Hover para Carrossel */
+        .carousel-item {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .carousel-item:hover {
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Header Scroll Effect */
+        .header-scroll {
+            background-color: rgba(0, 0, 0, 0.9);
+            transition: background-color 0.3s ease;
+        }
+
+        /* Quiz Styles */
+        .gradient-bg {
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #000000 100%);
+        }
+
+        .question-enter {
+            animation: slideInRight 0.5s ease-out;
+        }
+
+        .question-exit {
+            animation: slideOutLeft 0.5s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutLeft {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+        }
+
+        .pulse-red {
+            animation: pulseRed 2s infinite;
+        }
+
+        @keyframes pulseRed {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgb(175, 132, 185);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(229, 9, 20, 0);
+            }
+        }
+
+        /* Modals (Video, Info, Episode) */
+        .modal-overlay {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-content {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Video Player Responsiveness */
+        .video-player-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            background-color: black;
+        }
+
+        .video-player-container.vertical {
+            padding-bottom: 177.77%; /* 9:16 Aspect Ratio (for vertical videos) */
+        }
+
+        .video-player-container video,
+        .video-player-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Ensures video fits without cropping */
+        }
+
+
+        /* Memory Game Styles */
+        .memory-card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+
+        .memory-card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .memory-card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid #333;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .memory-card-front {
+            transform: rotateY(180deg);
+        }
+
+        .memory-card-back {
+            transform: rotateY(0deg);
+            background-color: #2d3748; 
+        }
+
+        .memory-card.matched .memory-card-face {
+            border-color: #8077B8; /* Cor roxa para cards combinados */
+            box-shadow: 0 0 15px #8077B8;
+        }
+    </style>
+</head>
+
+<body class="bg-black text-white font-sans">
+    <!-- Audio Elements for Quiz Feedback -->
+    <audio id="correctSound" src="public/audio/correct.mp3" preload="auto"></audio>
+    <audio id="incorrectSound" src="public/audio/incorrect.mp3" preload="auto"></audio>
+
+    <!-- Header Netflix Modernizado -->
+    <header id="mainHeader"
+        class="fixed top-0 w-full z-50 px-4 md:px-12 py-3 flex items-center justify-between transition-all duration-300">
+        <div class="flex items-center space-x-8">
+            <div class="netflix-purple-text text-3xl font-bold italic">AMORFLIX</div>
+            <nav class="hidden md:flex space-x-6 text-sm">
+            <a href="#"
+                class="hover:text-gray-300 transition-colors">Início</a>
+            <a href="#carousel1"
+                class="hover:text-gray-300 transition-colors">Melhores Momentos</a>
+            <a href="#temporadas"
+                class="hover:text-gray-300 transition-colors">Temporadas</a>
+            <a href="#photoCarousel"
+                class="hover:text-gray-300 transition-colors">Galeria</a>
+            <a href="#quizScreen"
+                class="hover:text-gray-300 transition-colors">Quiz</a>
+            <a href="#memoryGame"
+                class="hover:text-gray-300 transition-colors">Jogo da Memória</a>
+        </nav>
+        </div>
+        <div class="flex items-center space-x-6">
+            <button class="hover:text-gray-300 transition-colors">
+                <i class="fas fa-search text-lg"></i>
+            </button>
+            <button class="hover:text-gray-300 transition-colors">
+                <i class="fas fa-bell text-lg"></i>
+            </button>
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-blue-600 rounded-md overflow-hidden">
+                    <img src="images/Imagem9.jpg" alt="Profile" class="w-full h-full object-cover">
+                </div>
+                <i class="fas fa-caret-down text-gray-400"></i>
+            </div>
+        </div>
+    </header>
+    <!-- Hero Section Modernizada -->
+    <section class="pt-16">
+        <div class="relative h-screen max-h-[800px] min-h-[600px] w-full bg-cover bg-center bg-no-repeat"
+            style="background-image: url('images/Imagem2.jpg');">
+            <!-- Overlay com gradiente -->
+            <div class="absolute inset-0 gradient-overlay"></div>
+            <div class="absolute inset-0 gradient-bottom"></div>
+            <!-- Conteúdo sobre a imagem -->
+            <div class="relative z-10 flex flex-col justify-center h-full px-6 md:px-12 lg:px-24 max-w-3xl">
+                <!-- Badge da série -->
+                <div class="mb-4">
+                    <span class="netflix-purple-text text-sm font-bold uppercase tracking-wider">Série Original
+                        Amorflix</span>
+                </div>
+                <!-- Título -->
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight">
+                    Luiz e Carliane
+                </h1>
+                <!-- Informações da série -->
+                <div class="flex flex-wrap items-center gap-3 mb-4 text-sm">
+                    <span class="bg-gray-800 px-2 py-1 rounded text-xs font-bold">18</span>
+                    <span class="font-medium">2025</span>
+                    <span class="font-medium"><i class="fas fa-play-circle mr-1"></i> 3 Temporadas</span>
+                    <span class="font-medium"><i class="fas fa-star mr-1 text-yellow-400"></i> 5.0</span>
+                    <span class="font-medium"><i class="fas fa-closed-captioning mr-1"></i> Legendado</span>
+                </div>
+                <!-- Descrição -->
+                <p class="text-lg mb-6 leading-relaxed max-w-2xl">
+                    Nosso amor está a um clique de distância. Um amor real, do coração humano, do
+                    verdadeiro sentimento de te amar. Coração, a vida precisa de ti. Nosso amor é
+                    eterno e sempre será assim.
+                </p>
+                <!-- Botões -->
+                <div class="flex flex-wrap gap-3">
+                    <button id="heroPlayButton"
+                        class="flex items-center space-x-2 bg-white text-black px-6 py-2 rounded font-bold hover:bg-gray-200 transition-all">
+                        <i class="fas fa-play"></i>
+                        <span>Assistir</span>
+                    </button>
+                    <button id="infoButton"
+                        class="flex items-center space-x-2 bg-gray-600 bg-opacity-70 text-white px-6 py-2 rounded font-bold hover:bg-opacity-90 transition-all">
+                        <i class="fas fa-info-circle"></i><span>Mais informações</span>
+                    </button>
+                    <button
+                        class="flex items-center justify-center w-10 h-10 bg-gray-600 bg-opacity-70 text-white rounded-full hover:bg-opacity-90 transition-all">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button
+                        class="flex items-center justify-center w-10 h-10 bg-gray-600 bg-opacity-70 text-white rounded-full hover:bg-opacity-90 transition-all">
+                        <i class="fas fa-thumbs-up"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seção "Em Destaque" -->
+    <section class="px-4 md:px-12 py-8 -mt-16">
+        <h2 class="text-xl md:text-2xl font-bold mb-4">Em Destaque</h2>
+        <div class="relative w-full h-64 md:h-96 bg-cover bg-center rounded-lg shadow-xl overflow-hidden group"
+            style="background-image: url('images/Imagem7.jpg');">
+            <div class="absolute inset-0 bg-black bg-opacity-50 flex flex-col justify-end p-6 md:p-8">
+                <h3 class="text-2xl md:text-3xl font-bold mb-2">Praia: Onde Tudo Floresceu</h3>
+                <p class="text-sm md:text-base text-gray-300 mb-4 max-w-xl">
+                    Reviva o episódio em que Luiz e Carliane compartilharam momentos inesquecíveis à beira-mar,
+                    solidificando seu amor sob a luz da lua.
+                </p>
+                <button id="featuredPlayButton"
+                    class="flex items-center space-x-2 bg-white text-black px-6 py-2 rounded font-bold hover:bg-gray-200 transition-all w-fit">
+                    <i class="fas fa-play"></i>
+                    <span>Assistir Agora</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Seções de conteúdo -->
+    <main class="relative z-10 pb-20">
+        <!-- Seção "Nossos Melhores Momentos" com Carrossel -->
+        <section class="px-4 md:px-12 py-8">
+            <h2 class="text-xl md:text-2xl font-bold mb-4">Nossos Melhores Momentos</h2>
+            <div class="relative group">
+                <div class="relative overflow-hidden">
+                    <div id="carousel1" class="flex gap-2 overflow-x-auto pb-4 scroll-hidden scroll-smooth">
+                        <!-- Itens do carrossel -->
+                        <div class="carousel-item flex-none w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6">
+                            <div class="aspect-video bg-cover bg-center rounded-md cursor-pointer shadow-lg relative group video-trigger"
+                                style="background-image: url('images/Imagem8.jpg');" data-video="images/video6.mp4"
+                                data-title="O Começo..." data-description="T1:E1" data-video-type="local">
+                                <div
+                                    class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i class="fas fa-play text-3xl text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <h3 class="text-sm font-semibold">O Começo...</h3>
+                                <p class="text-xs text-gray-400">T1:E1</p>
+                            </div>
+                        </div>
+                        <div class="carousel-item flex-none w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6">
+                            <div class="aspect-video bg-cover bg-center rounded-md cursor-pointer shadow-lg relative group video-trigger"
+                                style="background-image: url('images/Imagem5.jpg');" data-video="images/video1.mp4"
+                                data-video-type="local" data-title="Primeira Viagem"
+                                data-description="T1:E2">
+                                <div
+                                    class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i class="fas fa-play text-3xl text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <h3 class="text-sm font-semibold">Primeira Viagem</h3>
+                                <p class="text-xs text-gray-400">T1:E2</p>
+                            </div>
+                        </div>
+                        <div class="carousel-item flex-none w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6">
+                            <div class="aspect-video bg-cover bg-center rounded-md cursor-pointer shadow-lg relative group"
+                                style="background-image: url('images/Imagem12.jpg');" data-video="images/video9.mp4"
+                                data-video-type="local" data-title="Praia"
+                                data-description="T1:E2">
+                                <div
+                                    class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i class="fas fa-play text-3xl text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <h3 class="text-sm font-semibold">Praia</h3>
+                                <p class="text-xs text-gray-400">T2:E3</p>
+                            </div>
+                        </div>
+                        <div class="carousel-item flex-none w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6">
+                            <div class="aspect-video bg-cover bg-center rounded-md cursor-pointer shadow-lg relative group"
+                                style="background-image: url('images/Imagem11.jpg');" data-video-type="images/video10.mp4" data-description="T1:E3" data-title="Fim de ano">
+                                <div
+                                    class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i class="fas fa-play text-3xl text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <h3 class="text-sm font-semibold">Fim de Ano</h3>
+                                <p class="text-xs text-gray-400">T1:E4</p>
+                            </div>
+                        </div>
+                        <div class="carousel-item flex-none w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6">
+                            <div class="aspect-video bg-cover bg-center rounded-md cursor-pointer shadow-lg relative group"
+                                style="background-image: url('images/Imagem6.jpg');"video="images/video2.mp4"
+                                data-video-type="local" data-title="Formatura"
+                                data-description="T1:E3">
+                                <div
+                                    class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i class="fas fa-play text-3xl text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <h3 class="text-sm font-semibold">Formatura</h3>
+                                <p class="text-xs text-gray-400">T1:E5</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Modal do Vídeo -->
+                <div id="videoModal"
+                    class="video-modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 opacity-0 invisible transition-all duration-300">
+                    <div class="relative w-full max-w-4xl mx-4">
+                        <div class="bg-gray-800 rounded-lg overflow-hidden shadow-xl">
+                            <div class="p-4 flex justify-between items-center bg-gray-900">
+                                <h3 id="videoTitle" class="text-lg font-semibold"></h3>
+                                <button id="closeModal" class="text-gray-400 hover:text-white">
+                                    <i class="fas fa-times text-xl"></i>
+                                </button>
+                            </div>
+                            <div class="video-player-container" id="videoContainer">
+                                <!-- O player será inserido aqui pelo JavaScript -->
+                            </div>
+                            <div class="p-4 bg-gray-900">
+                                <p id="videoDescription" class="text-gray-300"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Botões de navegação -->
+                <button onclick="scrollCarousel('carousel1', -1)"
+                    class="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black bg-opacity-70 hover:bg-opacity-90 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button onclick="scrollCarousel('carousel1', 1)"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black bg-opacity-70 hover:bg-opacity-90 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </section>
+        <!-- Seção "Temporadas" -->
+        <section class="px-4 md:px-12 py-8">
+            <h2 class="text-xl md:text-2xl font-bold mb-4">Temporadas</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Temporada 1 -->
+                <div class="bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-800 transition-colors">
+                    <div class="aspect-video bg-cover bg-center" style="background-image: url('images/Imagem19.jpg');">
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-bold mb-2">Primeiros Sorrisos</h3>
+                        <p class="text-sm text-gray-400 mb-3">10 episódios</p>
+                        <p class="text-sm">O início de tudo: nossas conversas, risadas e o começo de uma amizade que logo virou amor.</p>
+                        <button data-season="1"
+                            class="view-episodes-btn mt-4 netflix-purple hover:bg-purple-500 text-white px-4 py-2 rounded font-bold transition-colors">
+                            Ver Episódios
+                        </button>
+                    </div>
+                </div>
+                <!-- Temporada 2 -->
+                <div class="bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-800 transition-colors">
+                    <div class="aspect-video bg-cover bg-center" style="background-image: url('images/Imagem18.jpg');">
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-bold mb-2">Viagens e Descobertas</h3>
+                        <p class="text-sm text-gray-400 mb-3">12 episódios</p>
+                        <p class="text-sm">Nossos passeios, viagens e aventuras, descobrindo o mundo e um ao outro a cada novo momento.</p>
+                        <button data-season="2"
+                            class="view-episodes-btn mt-4 netflix-purple hover:bg-purple-500 text-white px-4 py-2 rounded font-bold transition-colors">
+                            Ver Episódios
+                        </button>
+                    </div>
+                </div>
+                <!-- Temporada 3 (Exemplo Adicional) -->
+                <div class="bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-800 transition-colors">
+                    <div class="aspect-video bg-cover bg-center" style="background-image: url('images/Imagem20.jpg');">
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-bold mb-2">Sonhos e Conquistas</h3>
+                        <p class="text-sm text-gray-400 mb-3"> 8 episódios</p>
+                        <p class="text-sm">Celebrando nossas vitórias, apoiando um ao outro e sonhando juntos com o futuro.</p>
+                        <button data-season="3"
+                            class="view-episodes-btn mt-4 netflix-purple hover:bg-purple-500 text-white px-4 py-2 rounded font-bold transition-colors">
+                            Ver Episódios
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Nova Seção: Galeria de Fotos -->
+        <section class="px-4 md:px-12 py-8">
+            <h2 class="text-xl md:text-2xl font-bold mb-4">Galeria de Fotos</h2>
+            <div class="relative group">
+                <div class="relative overflow-hidden">
+                    <div id="photoCarousel" class="flex gap-2 overflow-x-auto pb-4 scroll-hidden scroll-smooth">
+                        <!-- Itens do carrossel de fotos -->
+                        <div class="carousel-item flex-none w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6">
+                            <div class="aspect-square bg-cover bg-center rounded-md cursor-pointer shadow-lg"
+                                style="background-image: url('images/imagem1.png');"></div>
+                            <div class="mt-2">
+                                <h3 class="text-sm font-semibold">Formatura de Carliane</h3>
+                                <p class="text-xs text-gray-400">O dia em que celebramos a conquista da minha amada, cheia de orgulho e alegria.</p>
+                            </div>
+                        </div>
+                        <div class="carousel-item flex-none w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6">
+                            <div class="aspect-square bg-cover bg-center rounded-md cursor-pointer shadow-lg"
+                                style="background-image: url('images/Imagem14.jpg');"></div>
+                            <div class="mt-2">
+                                <h3 class="text-sm font-semibold">Jantar Romântico</h3>
+                                <p class="text-xs text-gray-400">Registrando nosso estilo e alegria antes de sair juntos.</p>
+                            </div>
+                        </div>
+                        <div class="carousel-item flex-none w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6">
+                            <div class="aspect-square bg-cover bg-center rounded-md cursor-pointer shadow-lg"
+                                style="background-image: url('images/Imagem13.jpg');"></div>
+                            <div class="mt-2">
+                                <h3 class="text-sm font-semibold">Aproveitando o domingo com meu Amor</h3>
+                                <p class="text-xs text-gray-400">Um domingo leve e descontraido com a melhor companhia do mundo </p>
+                            </div>
+                        </div>
+                        <div class="carousel-item flex-none w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6">
+                            <div class="aspect-square bg-cover bg-center rounded-md cursor-pointer shadow-lg"
+                                style="background-image: url('images/Imagem16.jpg');"></div>
+                            <div class="mt-2">
+                                <h3 class="text-sm font-semibold">Casamento da Joyce</h3>
+                                <p class="text-xs text-gray-400">Aproveitando uma festa incrivel com uma pessoa maravilhosa ao meu lado</p>
+                            </div>
+                        </div>
+                        <div class="carousel-item flex-none w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6">
+                            <div class="aspect-square bg-cover bg-center rounded-md cursor-pointer shadow-lg"
+                                style="background-image: url('images/Imagem15.jpg');"></div>
+                            <div class="mt-2">
+                                <h3 class="text-sm font-semibold">Noite Especial</h3>
+                                <p class="text-xs text-gray-400">Uma noite divertida e cheia de risadas ao lado de pessoas queridas.</p>
+                            </div>
+                        </div>
+                        <div class="carousel-item flex-none w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6">
+                            <div class="aspect-square bg-cover bg-center rounded-md cursor-pointer shadow-lg"
+                                style="background-image: url('images/Imagem17.jpg');"></div>
+                            <div class="mt-2">
+                                <h3 class="text-sm font-semibold">Aniversário da Moana</h3>
+                                <p class="text-xs text-gray-400">Uma viagem inesquecível e cheia de momentos alegres</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Botões de navegação para o carrossel de fotos -->
+                <button onclick="scrollCarousel('photoCarousel', -1)"
+                    class="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black bg-opacity-70 hover:bg-opacity-90 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button onclick="scrollCarousel('photoCarousel', 1)"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black bg-opacity-70 hover:bg-opacity-90 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- QUIZ INTERATIVO -->
+        <section class="px-4 md:px-12 py-8">
+            <div class="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden">
+                <!-- Start Screen -->
+                <div id="startScreen" class="flex flex-col items-center justify-center py-16 px-6">
+                    <div class="text-center max-w-2xl">
+                        <h2
+                            class="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
+                            <i class="fas fa-question-circle mr-3"></i>Quiz: Luiz e Carliane
+                        </h2>
+                        <p class="text-lg md:text-xl text-gray-300 mb-6 leading-relaxed">
+                            Teste seus conhecimentos sobre a gente! Será que você é um verdadeiro fã?
+                        </p>
+                        <div class="bg-gray-800/50 backdrop-blur-sm rounded-lg p-4 mb-6 border border-gray-600">
+                            <h3 class="text-md font-semibold mb-3 text-red-400">
+                                <i class="fas fa-clipboard-list mr-2"></i>Instruções:
+                            </h3>
+                            <ul class="text-left text-gray-300 space-y-1 text-sm">
+                                <li>• 10 perguntas sobre a série e romance</li>
+                                <li>• Cada pergunta vale 10 pontos</li>
+                                <li>• Você tem 30 segundos por pergunta</li>
+                                <li>• Escolha a melhor resposta</li>
+                            </ul>
+                        </div>
+                        <button id="startBtn"
+                            class="netflix-purple-gradient text-white px-6 py-3 rounded-lg text-lg font-semibold hover:scale-105 transition-all duration-300 pulse-red">
+                            <i class="fas fa-play mr-2"></i>Começar Quiz
+                        </button>
+                    </div>
+                </div>
+                <!-- Quiz Screen -->
+                <div id="quizScreen" class="hidden py-8 px-6">
+                    <!-- Progress Bar -->
+                    <div class="max-w-4xl mx-auto mb-6">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-sm text-gray-400">Pergunta <span id="currentQuestion">1</span> de <span
+                                    id="totalQuestions">10</span></span>
+                            <span class="text-sm text-gray-400">Pontuação: <span id="currentScore"
+                                    class="text-red-400 font-bold">0</span></span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2">
+                            <div id="progressBar"
+                                class="netflix-purple-gradient h-2 rounded-full transition-all duration-500"
+                                style="width: 10%"></div>
+                        </div>
+                    </div>
+                    <!-- Timer -->
+                    <div class="max-w-4xl mx-auto mb-6 text-center">
+                        <div
+                            class="inline-flex items-center space-x-2 bg-gray-800/50 backdrop-blur-sm rounded-lg px-4 py-2 border border-gray-600">
+                            <i class="fas fa-clock text-gray-400"></i>
+                            <span class="text-gray-400">Tempo:</span>
+                            <span id="timer" class="text-red-400 font-bold text-lg">30</span>
+                            <span class="text-gray-400">segundos</span>
+                        </div>
+                    </div>
+                    <!-- Question Container -->
+                    <div class="max-w-4xl mx-auto">
+                        <div id="questionContainer"
+                            class="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 border border-gray-600 question-enter">
+                            <h2 id="questionText"
+                                class="text-xl md:text-2xl font-bold mb-6 text-center leading-relaxed"></h2>
+                            <div id="answersContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Answers will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Results Screen -->
+                <div id="resultsScreen" class="hidden flex flex-col items-center justify-center py-16 px-6">
+                    <div class="text-center max-w-2xl">
+                        <div id="resultIcon" class="text-6xl mb-4"></div>
+                        <h1 id="resultTitle" class="text-3xl md:text-4xl font-bold mb-4"></h1>
+                        <div class="bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 mb-6 border border-gray-600">
+                            <div class="text-4xl font-bold text-red-400 mb-2" id="finalScore">0</div>
+                            <div class="text-lg text-gray-300 mb-3">de 100 pontos</div>
+                            <div id="resultMessage" class="text-md text-gray-400"></div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                            <button id="restartBtn"
+                                class="netflix-purple-gradient text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 transition-all duration-300">
+                                <i class="fas fa-redo mr-2"></i>Tentar Novamente
+                            </button>
+                            <button id="shareBtn"
+                                class="bg-gray-700 text-white px-5 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-all duration-300">
+                                <i class="fas fa-share mr-2"></i>Compartilhar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Novo Minigame: Jogo da Memória -->
+        <section class="px-4 md:px-12 py-8">
+            <div class="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden p-6">
+                <div class="text-center max-w-2xl mx-auto mb-8">
+                    <h2
+                        class="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                        <i class="fas fa-brain mr-3"></i>Nossos Momentos Escondidos
+                    </h2>
+                    <p class="text-lg md:text-xl text-gray-300 mb-6 leading-relaxed">
+                        Encontre os pares de momentos especiais e teste sua memória!
+                    </p>
+                </div>
+
+                <div class="flex justify-center items-center gap-4 mb-6">
+                    <div class="text-lg font-semibold">
+                        Rodada: <span id="memoryRound" class="text-netflix-purple-text">1</span> de 3
+                    </div>
+                    <div class="text-lg font-semibold">
+                        Tentativas: <span id="memoryAttempts" class="text-netflix-purple-text">0</span>
+                    </div>
+                    <button id="resetMemoryGameBtn"
+                        class="netflix-purple-gradient text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 transition-all duration-300">
+                        <i class="fas fa-redo mr-2"></i>Reiniciar Jogo
+                    </button>
+                </div>
+
+                <div id="memoryGame" class="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-5xl mx-auto">
+                    <!-- Memory cards will be inserted here by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+
+    </main>
+    <!-- Footer -->
+    <footer class="bg-black text-gray-500 py-8 px-4 md:px-12 border-t border-gray-900">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex space-x-4 mb-6">
+                <a href="#" class="hover:text-white transition-colors"><i class="fab fa-facebook text-xl"></i></a>
+                <a href="#" class="hover:text-white transition-colors"><i class="fab fa-instagram text-xl"></i></a>
+                <a href="#" class="hover:text-white transition-colors"><i class="fab fa-twitter text-xl"></i></a>
+                <a href="#" class="hover:text-white transition-colors"><i class="fab fa-youtube text-xl"></i></a>
+            </div>
+        </div>
+        <p class="text-xs">© 2025 Amorflix, Inc. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+  <!-- Modal de Mais Informações -->
+<div id="infoCard"
+    class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 modal-overlay">
+    <div
+        class="bg-gray-900 p-6 rounded-lg shadow-lg max-w-md w-full relative text-white modal-content max-h-[70vh] overflow-y-auto scroll-smooth scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-gray-900 scrollbar-thumb-rounded-full">
+        <button id="closeInfoCardButton" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">
+            <i class="fas fa-times"></i>
+        </button>
+        <h2 class="text-2xl font-bold mb-4">Sobre Luiz e Carliane</h2>
+        <div class="space-y-4 text-gray-300 text-justify text-sm">
+        <style>
+                #infoCard .modal-content::-webkit-scrollbar {
+                width: 6px;
+                background: #27272a;
+                border-radius: 8px;
+            }
+            #infoCard .modal-content::-webkit-scrollbar-thumb {
+                background: #27272a;
+                border-radius: 8px;
+            }
+        </style>
+            <p>
+                Oi meu amor, venho através desta carta expressar um pouco do meu amor por ti. Queria conseguir pôr em palavras a totalidade do meu amor por ti. Bom, começarei ressaltando o quão fundamental você é e foi pra mim nesses quatro anos que a gente se conhece. Desde o tempo em que éramos apenas amigos, a nossa união sempre foi algo admirável, pois independente da situação, tanto eu quanto você podíamos contar com a lealdade um do outro, seja nos melhores momentos ou nos piores.
+            </p>
+            <p>
+                Lembro-me muito bem do dia em que eu fui roubado e você foi a primeira pessoa em quem eu me preocupei em mandar mensagem, pois já nessa época, nossa amizade estava incrível, e sabia que não podia deixar você desinformada para não causar preocupação.
+            </p>
+            <p>
+                Ao passar do tempo, fomos ficando cada vez mais próximos e mais íntimos um do outro. Eram horas e horas em chamada, madrugadas conversando, eu ia na sua casa aos domingos, te esperava na praça pra gente poder conversar. Enfim, aproveitamos nossa amizade da melhor forma possível e conforme o tempo ia passando, eu ia criando sentimentos por ti, até que um dia eu não aguentei mais e decidi abrir o jogo pra você de como eu estava me sentindo. Na época, não aconteceu nada, até porque tínhamos o medo de que isso acarretasse no fim de nossa amizade, e por isso não tivemos nada nesse tempo.
+            </p>
+            <p>
+                Só sei que foram longos sete meses gostando de você e tentando te conquistar. Fazia de tudo quanto é coisa para te agradar e demonstrar que valia a pena namorar comigo e que não, não íamos perder nossa amizade, mas sim o contrário, íamos fortalecer ainda mais o nosso laço de amizade.
+            </p>
+            <p>
+                Durante esse tempo, eu te via com uma paixão imensa e a única coisa que me vinha a mente era "meu Deus que garota mais linda. Ainda vou namorar com ela e um dia, se o Senhor permitir, irei casar com essa mulher". Mesmo que as vezes eu pensasse que você não me queria e que não ia dar em nada, eu nunca desisti do meu amor por ti, e hoje vejo que valeu muito a pena.
+            </p>
+            <p>
+                Nosso relacionamento nem sempre foram só flores, tiveram altos e baixos que nem todos os casais, mas atualmente eu vejo isso como uma prova do destino para ver se íamos aguentar e se realmente era isso que a gente queria um pro outro.
+            </p>
+            <p>
+                Sabe amor, quando deito no travesseiro, amo relembrar os nossos bons momentos, como a nossa primeira viagem para Maceió (os dias lá foram inesquecíveis), nosso primeiro jantar juntos, nossa primeira noite juntos, nosso primeiro show que vimos juntos e mais recente a nossa viagem.
+            </p>
+            <p>
+                A nossa viagem representa MUITO pra mim, sabe, porque foi algo que sonhávamos e conseguimos realizar. Juntamos nosso dinheiro e de forma autônoma, sem depender de ninguém, fomos a Maceió sozinhos. Olhando agora, parece até irreal, dois jovens indo para a capital passar três dias e três noites em um hotel e sozinhos (parece até história de filme). Lá tivemos os melhores momentos de nosso relacionamento, onde conseguimos aproveitar um tempo de qualidade juntos e nos amarmos intensamente.
+            </p>
+            <p>
+                Lembro que assim que chegamos, ficamos perdidos sem saber onde ligava as luzes nem nada, mas logo nos acomodamos e fomos comer. Se eu tivesse um arrependimento dessa viagem, esse seria de ter levado comida (kkkkkk) porque a gente mal comemos o que levamos (lembrete para as próximas: não levar comida kkk) e ainda por cima, fomos jantar no rodízio.
+            </p>
+            <p>
+                O segundo dia a gente aproveitou bastante, começamos indo primeiro na piscina do hotel (e que piscina em amor kkkk) depois fomos aproveitar a orla e suas maravilhas. Lá foi sensacional (meu amor torando um carne sozinha kkkkkk), passeamos pela orla, almoçamos em um ótimo lugar, depois pegamos uma prainha e por fim demos mais uma volta pela orla.
+            </p>
+            <p>
+                A noite foi incrível, começando pelo nosso milkshake de vaquinha (que por sinal tava uma delícia). Em seguida, partimos em direção a orla para aproveitar a brisa do mar e o clima gostoso da noite, nessa noite, aconteceu algo muito especial e que eu amo recordar, que foi o nosso vídeo com o drone. Esse momento foi mais que especial, foi mágico e único, mas o que mais me deixou feliz foi a sua alegria. Você pulava de entusiasmo, era lindo de ver a sua felicidade. Mesmo que nessa noite eu não tenha dormido muito bem, mas pelo menos eu deitei com a sensação de dever cumprido, pois tinha conseguido tirar a alegria e o sorriso da pessoa mais especial para mim, que é você.
+            </p>
+            <p>
+                Essa nossa viagem eu vejo como um marco muito grande no nosso relacionamento, uma conquista e o começo da nossa independência como casal. Sinto que depois dela, a gente mudou e pra melhor.
+            </p>
+            <p>
+                Hoje vivemos momentos de altos e baixos, mas graças a Deus são bem mais altos do que baixos, mas já tiveram épocas que foram complicadas... Enfim, não vou citar coisas ruins aqui, não é esse o intuito da minha carta de amor para ti.
+            </p>
+            <p>
+                Recentemente, você teve a colação de grau do seu ensino médio técnico, que pra mim, foi incrível ter participado desse momento tão especial. Me senti singelamente honrado por estar celebrando essa grande conquista contigo. Ver a minha garota se tornando uma mulher fantástica, é algo inexplicável pra mim, uma sensação tão boa e tão gratificante que não cabe em palavras.
+            </p>
+            <p>
+                Por fim, eu gostaria de dizer o quanto eu te amo e que você é maravilhosa em minha vida. Você e sempre será a minha amada, a mulher da minha vida, a mãe de nossos futuros filhos, a esposa que sempre sonhei e a companheira que vai estar comigo até nos últimos momentos. Saiba que eu te amo muito meu amor e desejo passar vários e vários dia dos namorados ao seu lado. Te amo tulipinha.
+            </p>
+        </div>
+    </div>
+</div>
+
+    <!-- Modal de Detalhes dos Episódios -->
+    <div id="episodeModal"
+        class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 modal-overlay">
+        <div class="bg-gray-900 p-8 rounded-lg shadow-lg max-w-2xl w-full relative text-white modal-content max-h-[90vh] flex flex-col">
+            <button id="closeEpisodeModalButton"
+                class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 id="episodeModalTitle" class="text-2xl font-bold mb-4"></h2>
+            <p id="episodeModalDescription" class="text-gray-300 mb-6"></p>
+            <div id="episodeList" class="space-y-4 overflow-y-auto pr-2 scroll-hidden flex-grow">
+                <!-- Episódios serão carregados aqui -->
+            </div>
+        </div>
+    </div>
+
+
+    <script src="quiz.js"></script>
+</body>
+
+</html>
